@@ -19,7 +19,7 @@ class BaseDataset(object):
     def combine(ds1, ds2):
         feature_set = ds1.feature_set + ds2.feature_set
         label_set = ds1.feature_set + ds2.feature_set
-        return StanceDataset(feature_set, label_set)
+        return BaseDataset(feature_set, label_set)
 
     def validate(self):
         assert len(self.feature_set) == len(self.label_set)

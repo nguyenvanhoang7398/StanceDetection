@@ -241,11 +241,12 @@ class RumorEval17(BaseDatasetLoader):
 
 class FncLoader(BaseDatasetLoader):
 
-    def __init__(self, fnc_root, info_every=1000):
+    def __init__(self, fnc_root, info_every=1000, dataset=StanceDataset):
         super().__init__(info_every)
         self.fnc_root = fnc_root
         self.fnc_train_bodies = os.path.join(fnc_root, "train_bodies.csv")
         self.fnc_train_stances = os.path.join(fnc_root, "train_stances.csv")
+        self.dataset = dataset
 
     def load_bodies(self):
         bodies_map = {}
@@ -303,7 +304,7 @@ class FncLoader(BaseDatasetLoader):
         for i, feature in enumerate(feature_set):
             source, target = feature[0], feature[1]
             cleaned_feature_set.append([source.replace("\n", " "), target])
-        return StanceDataset(cleaned_feature_set, label_set)
+        return self.dataset(cleaned_feature_set, label_set)
 
     def load_split(self):
         feature_set, label_set = self.load_full()
@@ -316,12 +317,12 @@ class FncLoader(BaseDatasetLoader):
                     split_feature_set.append([paragraph, target])
                     split_label_set.append(label)
 
-        return StanceDataset(split_feature_set, split_label_set)
+        return self.dataset(split_feature_set, split_label_set)
 
 
 class FncRelationLoader(FncLoader):
-    def __init__(self, fnc_root, info_every=1000):
-        super(FncRelationLoader, self).__init__(fnc_root, info_every)
+    def __init__(self, fnc_root, info_every=1000, dataset=RelationDataset):
+        super(FncRelationLoader, self).__init__(fnc_root, info_every, dataset)
 
     @staticmethod
     def convert_stance(raw_stance):
@@ -335,12 +336,3 @@ class FncRelationLoader(FncLoader):
         if raw_stance in stances_map.keys():
             return stances_map[raw_stance]
         raise ValueError("Unsupported stance {}".format(raw_stance))
-
-    def load(self):
-        stance_dataset = super().load()
-        return RelationDataset(stance_dataset.feature_set, stance_dataset.label_set)
-
-    def load_split(self):
-        stance_dataset = super().load_split()
-        return RelationDataset(stance_dataset.feature_set, stance_dataset.label_set)
-    
