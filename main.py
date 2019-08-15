@@ -43,12 +43,12 @@ def load_re17(config):
     re17_dataset.export_cross_eval(config.re17_root, config.num_folds)
 
 
-def load_fnn(config):
+def load_fnn(config, news_label):
     fnn_loader = FakeNewsNetDatasetLoader(config.fnn_root)
-    fnn_dataset = fnn_loader.load(clean=False)
-    fnn_dataset.export_full(os.path.join(config.fnc_root, "fnc_uncleaned.csv"))
-    fnn_dataset_cleaned = fnn_loader.load(clean=True)
-    fnn_dataset_cleaned.export_full(os.path.join(config.fnc_root, "fnc_cleaned.csv"))
+    fnn_dataset = fnn_loader.load(clean=False, news_label=news_label)
+    fnn_dataset.export_full(os.path.join(config.fnc_root, "fnc_{}_uncleaned.csv".format(news_label)))
+    fnn_dataset_cleaned = fnn_loader.load(clean=True, news_label=news_label)
+    fnn_dataset_cleaned.export_full(os.path.join(config.fnc_root, "fnc_{}_cleaned.csv".format(news_label)))
 
 
 def preprocess(config):
@@ -56,8 +56,10 @@ def preprocess(config):
     # load_fnc_split(config)
     # load_re17(config)
     # load_fnn(config)
-    load_fnc_relation_full(config)
-    load_fnc_relation_split(config)
+    # load_fnc_relation_full(config)
+    # load_fnc_relation_split(config)
+    load_fnn(config, "fake")
+    load_fnn(config, "real")
 
 
 def experiment_summary(config):
