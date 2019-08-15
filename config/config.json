@@ -1,0 +1,13 @@
+{
+	"num_folds": 10,
+	"fnc_root": "datasets/fnc/",
+	"fnc_out_csv": "datasets/fnc/fnc.csv",
+	"fnc_sts_csv": "datasets/fnc/fnc_sts.tsv",
+	"re17_root": "datasets/rumor_eval_17/",
+	"re17_out_csv": "datasets/rumor_eval_17/re17.csv",
+	"re17_sts_csv": "datasets/rumor_eval_17/re17_sts.tsv",
+	"fnn_root": "datasets/fakenewsnet_dataset/",
+	"fnn_out_csv": "datasets/fakenewsnet_dataset/fnn.csv",
+	"fnn_fnc_pred_root": "datasets/fakenewsnet_dataset/stance_fnc",
+	"fnn_re17_pred_root": "datasets/fakenewsnet_dataset/stance_re17"
+}
