@@ -8,7 +8,7 @@ STS_HEADER = ["index", "genre", "filename", "year", "old_index", "source1", "sou
               "sentence2", "stance"]
 
 
-class StanceDataset(object):
+class BaseDataset(object):
     def __init__(self, feature_set, label_set):
         self.feature_set = feature_set
         self.label_set = label_set
@@ -28,7 +28,11 @@ class StanceDataset(object):
             assert type(self.feature_set[i][0]) == str
             assert type(self.feature_set[i][1]) == str
             assert type(self.label_set[i]) == str
-            assert self.label_set[i] in ["support", "deny", "comment", "unrelated"]
+            self.validate_labels(self.label_set[i])
+
+    @staticmethod
+    def validate_labels(label):
+        assert type(label) == str
 
     def export_cross_eval(self, output_dir, num_folds=10):
         kf = KFold(n_splits=num_folds)
@@ -65,3 +69,21 @@ class StanceDataset(object):
             stance = self.label_set[i]
             content.append([str(i), "none", "none", "none", "none", "none", "none", source, target, stance])
         utils.write_csv(content, STS_HEADER, path, delimiter="\t")
+
+
+class RelationDataset(BaseDataset):
+    def __init__(self, feature_set, label_set):
+        super(RelationDataset, self).__init__(feature_set, label_set)
+
+    @staticmethod
+    def validate_labels(label):
+        assert label in ["related", "unrelated"]
+
+
+class StanceDataset(BaseDataset):
+    def __init__(self, feature_set, label_set):
+        super(StanceDataset, self).__init__(feature_set, label_set)
+
+    @staticmethod
+    def validate_labels(label):
+        assert label in ["support", "deny", "comment", "unrelated"]

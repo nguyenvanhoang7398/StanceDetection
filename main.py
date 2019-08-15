@@ -1,7 +1,7 @@
 import argparse
 from config import Config
 import os
-from preprocessing import FncLoader, RumorEval17, FakeNewsNetDatasetLoader
+from preprocessing import *
 import utils
 
 CONFIGS = None
@@ -13,24 +13,51 @@ def add_arguments(parser):
     parser.add_argument("--config-path", type=str, default="config/config.json", help="Path to config file")
 
 
-def preprocess(config):
+def load_fnc_full(config):
     fnc_loader = FncLoader(config.fnc_root)
-    # fnc_dataset = fnc_loader.load()
-    # fnc_dataset.export_full(config.fnc_out_csv)
-    # fnc_dataset.export_cross_eval(os.path.join(config.fnc_root, "fnc_full"), config.num_folds)
+    fnc_dataset = fnc_loader.load()
+    fnc_dataset.export_cross_eval(os.path.join(config.fnc_root, "fnc_full"), config.num_folds)
+
+
+def load_fnc_relation_full(config):
+    fnc_relation_leader = FncRelationLoader(config.fnc_root)
+    fnc_relation_dataset = fnc_relation_leader.load()
+    fnc_relation_dataset.export_cross_eval(os.path.join(config.fnc_root, "fnc_relation_full"), config.num_folds)
+
+
+def load_fnc_relation_split(config):
+    fnc_relation_leader = FncRelationLoader(config.fnc_root)
+    fnc_relation_dataset = fnc_relation_leader.load_split()
+    fnc_relation_dataset.export_cross_eval(os.path.join(config.fnc_root, "fnc_relation_split"), config.num_folds)
+
+
+def load_fnc_split(config):
+    fnc_loader = FncLoader(config.fnc_root)
     fnc_dataset_split = fnc_loader.load_split()
     fnc_dataset_split.export_cross_eval(os.path.join(config.fnc_root, "fnc_split"), config.num_folds)
-    # fnc_dataset_split.export_sts_format(config.fnc_sts_csv)
-    #
-    # re17_loader = RumorEval17(config.re17_root)
-    # re17_dataset = re17_loader.load()
-    # re17_dataset.export_full(config.re17_out_csv)
-    # re17_dataset.export_cross_eval(config.re17_root, config.num_folds)
-    # re17_dataset.export_sts_format(config.re17_sts_csv)
 
-    # fnn_loader = FakeNewsNetDatasetLoader(config.fnn_root)
-    # fnn_dataset = fnn_loader.load(clean=False)
-    # fnn_dataset.export_full(config.fnn_out_csv)
+
+def load_re17(config):
+    re17_loader = RumorEval17(config.re17_root)
+    re17_dataset = re17_loader.load()
+    re17_dataset.export_cross_eval(config.re17_root, config.num_folds)
+
+
+def load_fnn(config):
+    fnn_loader = FakeNewsNetDatasetLoader(config.fnn_root)
+    fnn_dataset = fnn_loader.load(clean=False)
+    fnn_dataset.export_full(os.path.join(config.fnc_root, "fnc_uncleaned.csv"))
+    fnn_dataset_cleaned = fnn_loader.load(clean=True)
+    fnn_dataset_cleaned.export_full(os.path.join(config.fnc_root, "fnc_cleaned.csv"))
+
+    
+def preprocess(config):
+    # load_fnc_full(config)
+    # load_fnc_split(config)
+    # load_re17(config)
+    # load_fnn(config)
+    load_fnc_relation_full(config)
+    load_fnc_relation_split(config)
 
 
 def experiment_summary(config):

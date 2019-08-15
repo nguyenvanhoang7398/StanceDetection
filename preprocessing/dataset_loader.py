@@ -317,3 +317,21 @@ class FncLoader(BaseDatasetLoader):
                     split_label_set.append(label)
 
         return StanceDataset(split_feature_set, split_label_set)
+
+
+class FncRelationLoader(FncLoader):
+    def __init__(self, fnc_root, info_every=1000):
+        super(FncRelationLoader, self).__init__(fnc_root, info_every)
+
+    @staticmethod
+    def convert_stance(raw_stance):
+        stances_map = {
+            "agree": "related",
+            "disagree": "related",
+            "discuss": "related",
+            "unrelated": "unrelated"
+        }
+
+        if raw_stance in stances_map.keys():
+            return stances_map[raw_stance]
+        raise ValueError("Unsupported stance {}".format(raw_stance))
