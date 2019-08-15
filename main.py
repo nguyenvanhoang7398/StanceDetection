@@ -50,7 +50,7 @@ def load_fnn(config):
     fnn_dataset_cleaned = fnn_loader.load(clean=True)
     fnn_dataset_cleaned.export_full(os.path.join(config.fnc_root, "fnc_cleaned.csv"))
 
-    
+
 def preprocess(config):
     # load_fnc_full(config)
     # load_fnc_split(config)

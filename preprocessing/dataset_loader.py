@@ -3,7 +3,7 @@ import os
 import urllib3
 import utils
 
-from preprocessing.dataset import StanceDataset
+from preprocessing.dataset import *
 
 
 class BaseDatasetLoader(object):
@@ -335,3 +335,12 @@ class FncRelationLoader(FncLoader):
         if raw_stance in stances_map.keys():
             return stances_map[raw_stance]
         raise ValueError("Unsupported stance {}".format(raw_stance))
+
+    def load(self):
+        stance_dataset = super().load()
+        return RelationDataset(stance_dataset.feature_set, stance_dataset.label_set)
+
+    def load_split(self):
+        stance_dataset = super().load_split()
+        return RelationDataset(stance_dataset.feature_set, stance_dataset.label_set)
+    
