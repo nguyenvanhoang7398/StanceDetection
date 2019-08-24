@@ -17,7 +17,7 @@ class BaseDatasetLoader(object):
 class FakeNewsNetDatasetLoader(BaseDatasetLoader):
 
     DEFAULT_STANCE = "comment"
-    DATASETS = ["csi"]
+    DATASETS = ["gossipcop"]
 
     def __init__(self, fnn_root, info_every=10):
         super().__init__(info_every)
@@ -25,7 +25,7 @@ class FakeNewsNetDatasetLoader(BaseDatasetLoader):
 
     def export_source_urls_analysis(self, path):
         fake_source_urls = self.load_source_urls(news_label="fake")
-        real_source_urls = self.load(news_label="real")
+        real_source_urls = self.load_source_urls(news_label="real")
         source_urls = fake_source_urls + real_source_urls
         cnt = Counter()
         for url in source_urls:
@@ -45,6 +45,8 @@ class FakeNewsNetDatasetLoader(BaseDatasetLoader):
             for news_id in os.listdir(news_label_dir):
                 news_dir = os.path.join(news_label_dir, news_id)
                 news_content_path = os.path.join(news_dir, "news content.json")
+                if not os.path.isfile(news_content_path):
+                    continue
                 news_content = utils.read_json(news_content_path)
                 source_url = news_content["url"]
                 source_home_url = utils.extract_home_url(source_url)
