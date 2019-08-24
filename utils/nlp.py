@@ -28,7 +28,7 @@ def strip_tags(text):
 
 def clean_tweet_text(tweet_text):
     tweet_text = tweet_text.replace("’", "'").replace("…", "...")
-    return p.clean(tweet_text)
+    return remove_punctuations(p.clean(tweet_text))
 
 
 def longest_common_substring(m, n):

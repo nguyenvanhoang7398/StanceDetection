@@ -9,5 +9,7 @@
 	"fnn_root": "datasets/fakenewsnet_dataset/",
 	"fnn_out_csv": "datasets/fakenewsnet_dataset/fnn.csv",
 	"fnn_fnc_pred_root": "datasets/fakenewsnet_dataset/stance_fnc",
-	"fnn_re17_pred_root": "datasets/fakenewsnet_dataset/stance_re17"
+	"fnn_re17_pred_root": "datasets/fakenewsnet_dataset/stance_re17",
+	"csi_root": "datasets/csi",
+	"re19_root": "datasets/rumor_eval_19"
 }

@@ -1,4 +1,5 @@
 import urllib3
+from urllib.parse import urlparse
 from bs4 import BeautifulSoup
 
 PAGE_NOT_FOUND = "Page not found"
@@ -23,3 +24,10 @@ class HeadlineCrawler(object):
             return raw_title, MEDIA_NOT_FOUND
         title, news_media = raw_title[:split_idx].strip(), raw_title[split_idx+1:]
         return title, news_media
+
+
+def extract_home_url(full_url):
+    parsed_uri = urlparse(full_url)
+    result = '{uri.scheme}://{uri.netloc}/'.format(uri=parsed_uri)
+
+    return str(result)

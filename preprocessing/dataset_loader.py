@@ -1,7 +1,6 @@
+from collections import Counter
 import csv
-import os
 import urllib3
-import utils
 
 from preprocessing.dataset import *
 
@@ -18,11 +17,41 @@ class BaseDatasetLoader(object):
 class FakeNewsNetDatasetLoader(BaseDatasetLoader):
 
     DEFAULT_STANCE = "comment"
-    DATASETS = ["politifact"]
+    DATASETS = ["csi"]
 
     def __init__(self, fnn_root, info_every=10):
         super().__init__(info_every)
         self.fnn_root = fnn_root
+
+    def export_source_urls_analysis(self, path):
+        fake_source_urls = self.load_source_urls(news_label="fake")
+        real_source_urls = self.load(news_label="real")
+        source_urls = fake_source_urls + real_source_urls
+        cnt = Counter()
+        for url in source_urls:
+            cnt[url] += 1
+        content = []
+        header = ["source_url", "frequency"]
+        for source_url, frequency in cnt.most_common():
+            content.append([source_url, str(frequency)])
+        utils.write_csv(content, header, path)
+
+    def load_source_urls(self, news_label="fake"):
+        source_urls = []
+
+        for dataset in self.DATASETS:
+            dataset_dir = os.path.join(self.fnn_root, dataset)
+            news_label_dir = os.path.join(dataset_dir, news_label)
+            for news_id in os.listdir(news_label_dir):
+                news_dir = os.path.join(news_label_dir, news_id)
+                news_content_path = os.path.join(news_dir, "news content.json")
+                news_content = utils.read_json(news_content_path)
+                source_url = news_content["url"]
+                source_home_url = utils.extract_home_url(source_url)
+                source_urls.append(source_home_url)
+
+        return source_urls
+
 
     def load(self, clean=True, news_label="fake"):
         feature_set, label_set = [], []
@@ -141,7 +170,9 @@ class RumorEval17(BaseDatasetLoader):
         for tweet_path in os.listdir(tweet_folder_path):
             tweet_full_path = os.path.join(tweet_folder_path, tweet_path)
             tweet_json = utils.read_json(tweet_full_path)
-            tweet_map[str(tweet_json["id"])] = utils.clean_tweet_text(tweet_json["text"])
+            tweet_text = utils.clean_tweet_text(tweet_json["text"]).strip().rstrip()
+            if len(tweet_text) > 0:
+                tweet_map[str(tweet_json["id"])] = utils.clean_tweet_text(tweet_json["text"])
         return tweet_map
 
     @staticmethod
@@ -236,6 +267,84 @@ class RumorEval17(BaseDatasetLoader):
                                     label_set, prop_headline_label_map, full_tweet_map)
             i += 1
         return StanceDataset(feature_set, label_set)
+
+
+class RumorEvalTwitter19(RumorEval17):
+    def __init__(self, re_root, info_every=10):
+        super(RumorEvalTwitter19, self).__init__(re_root, info_every)
+        self.traindev = os.path.join(self.re_root, "rumoureval-2019-training-data")
+        self.re_data = os.path.join(self.traindev, "twitter-english")
+        self.headline_csv = os.path.join(self.re_root, "headlines_twitter.csv")
+
+    def load_labels(self):
+        re_train_label_path = os.path.join(self.traindev, "train-key.json")
+        re_dev_label_path = os.path.join(self.traindev, "dev-key.json")
+        all_train_labels = utils.read_json(re_train_label_path)
+        task_a_train_labels = all_train_labels["subtaskaenglish"]
+        all_dev_labels = utils.read_json(re_dev_label_path)
+        task_a_dev_labels = all_dev_labels["subtaskaenglish"]
+        raw_label_map = {**task_a_train_labels, **task_a_dev_labels}
+        return {str(k): v for k, v in raw_label_map.items()}  # convert tweet id from int to string
+
+
+class RumorEvalReddit19(RumorEvalTwitter19):
+    def __init__(self, re_root, info_every=10):
+        super(RumorEvalReddit19, self).__init__(re_root, info_every)
+        self.re_data = os.path.join(self.traindev, "reddit-training-data")
+
+    def load(self):
+        label_map = self.load_labels()
+        feature_set, label_set = [], []
+
+        i = 0
+        for discourse_id in os.listdir(self.re_data):
+            if i % self.info_every == 0:
+                print("Loaded {} rumor eval 19 reddit discourses".format(str(i)))
+            discourse_id_path = os.path.join(self.re_data, discourse_id)
+            reply_folder_path = os.path.join(discourse_id_path, "replies")
+            source_folder_path = os.path.join(discourse_id_path, "source-tweet")
+            reply_map = self.load_tweet_folder(reply_folder_path)
+            source_map = self.load_tweet_folder(source_folder_path)
+            full_tweet_map = {**reply_map, **source_map}
+            url_data = os.path.join(discourse_id_path, "urls.dat")
+            tweet_structure = utils.read_json(os.path.join(discourse_id_path, "structure.json"))
+            headlines = []
+            with open(url_data, "r", encoding="utf-8") as f:
+                csv_reader = csv.reader(f, delimiter="\t", quotechar='"')
+                for row in csv_reader:
+                    url_id, shortened_url, full_url = row[0], row[1], row[2]
+                    if url_id in headline_map:
+                        headlines.append(headline_map[url_id])
+                    else:
+                        print("Url {} not found".format(url_id))
+            prop_headline_label_map = {}
+            for source, source_text in source_map.items():
+                if source not in label_map:
+                    print("Tweet {} does not have any label".format(source))
+                    continue
+                try:
+                    source_label = self.convert_stance(label_map[source])
+                    for headline in headlines:
+                        feature_set.append([source_text, headline])
+                        label_set.append(source_label)
+                        prop_headline_label_map[source] = source_label
+                except ValueError as e:
+                    print(str(e))
+            self.annotate_tweet(tweet_structure, label_map, headlines, feature_set,
+                                label_set, prop_headline_label_map, full_tweet_map)
+            i += 1
+        return StanceDataset(feature_set, label_set)
+
+    @staticmethod
+    def load_reddit_folder(tweet_folder_path):
+        tweet_map = {}
+        for tweet_path in os.listdir(tweet_folder_path):
+            tweet_full_path = os.path.join(tweet_folder_path, tweet_path)
+            tweet_json = utils.read_json(tweet_full_path)
+            tweet_text = utils.clean_tweet_text(tweet_json["text"]).strip().rstrip()
+            if len(tweet_text) > 0:
+                tweet_map[str(tweet_json["id"])] = utils.clean_tweet_text(tweet_json["text"])
+        return tweet_map
 
 
 class FncLoader(BaseDatasetLoader):

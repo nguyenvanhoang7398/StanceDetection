@@ -11,3 +11,5 @@ class Config(object):
 		self.fnn_out_csv = config_dict["fnn_out_csv"]
 		self.fnn_fnc_pred_root = config_dict["fnn_fnc_pred_root"]
 		self.fnn_re17_pred_root = config_dict["fnn_re17_pred_root"]
+		self.csi_root = config_dict["csi_root"]
+		self.re19_root = config_dict["re19_root"]
