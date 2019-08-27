@@ -17,11 +17,75 @@ class BaseDatasetLoader(object):
 class FakeNewsNetDatasetLoader(BaseDatasetLoader):
 
     DEFAULT_STANCE = "comment"
-    DATASETS = ["gossipcop"]
+    DATASETS = ["politifact"]
 
     def __init__(self, fnn_root, info_every=10):
         super().__init__(info_every)
         self.fnn_root = fnn_root
+
+    def load_mentioned_urls(self, news_label="fake"):
+        mentioned_urls_dict, mentioned_urls_corpus = {}, []
+        print("Load mentioned urls")
+        i = 0
+
+        for dataset in self.DATASETS:
+            dataset_dir = os.path.join(self.fnn_root, dataset)
+            news_label_dir = os.path.join(dataset_dir, news_label)
+            for news_id in os.listdir(news_label_dir):
+                mentioned_urls_dict[news_id] = set()
+                unique_mentioned_urls = set()
+                news_dir = os.path.join(news_label_dir, news_id)
+                tweet_dir = os.path.join(news_dir, "tweets")
+                print(tweet_dir)
+                if not os.path.isdir(tweet_dir):
+                    continue
+                for tweet_id in os.listdir(tweet_dir):
+                    if i % self.info_every == 0:
+                        print("Loaded {} Fake News Net tweets".format(str(i)))
+                    tweet_path = os.path.join(tweet_dir, tweet_id)
+                    tweet_content = utils.read_json(tweet_path)
+                    if "entities" not in tweet_content or "urls" not in tweet_content["entities"] \
+                            or len(tweet_content["entities"]["urls"]) == 0:
+                        continue
+                    for url_obj in tweet_content["entities"]["urls"]:
+                        expanded_url = url_obj["expanded_url"]
+                        if len(expanded_url) > 0:
+                            home_expanded_url = utils.extract_home_url(expanded_url)
+                            mentioned_urls_dict[news_id].add(home_expanded_url)
+                            unique_mentioned_urls.add(home_expanded_url)
+                    i += 1
+                mentioned_urls_corpus += list(unique_mentioned_urls)
+
+        mentioned_urls = [[k, " ".join(v)] for k, v in mentioned_urls_dict.items()]
+        print("Size of mentioned urls " + str(len(mentioned_urls)))
+        return mentioned_urls, mentioned_urls_corpus
+
+    def export_mentioned_urls(self, mentioned_urls_path, mentioned_urls_freq_path):
+        fake_mentioned_urls, fake_mentioned_urls_corpus = self.load_mentioned_urls(news_label="fake")
+        real_mentioned_urls, real_mentioned_urls_corpus = self.load_mentioned_urls(news_label="real")
+        mentioned_urls = fake_mentioned_urls + real_mentioned_urls
+        # mentioned_urls_corpus = fake_mentioned_urls_corpus + real_mentioned_urls_corpus
+        fake_cnt, real_cnt = Counter(), Counter()
+        for url in fake_mentioned_urls_corpus:
+            fake_cnt[url] += 1
+        for url in real_mentioned_urls_corpus:
+            real_cnt[url] += 1
+        cnt = fake_cnt + real_cnt
+        mentioned_urls_freq_content = []
+        mentioned_urls_freq_header = ["mentioned_url", "frequency", "label"]
+        mentioned_urls_header = ["event", "mentioned_urls"]
+        for url, frequency in cnt.most_common():
+            fake_url_cnt = fake_cnt[url] if url in fake_cnt else 0
+            real_url_cnt = real_cnt[url] if url in real_cnt else 0
+            if fake_url_cnt > real_url_cnt:
+                label = "fake"
+            elif fake_url_cnt < real_url_cnt:
+                label = "real"
+            else:
+                label = "tie"
+            mentioned_urls_freq_content.append([url, str(frequency), label])
+        utils.write_csv(mentioned_urls_freq_content, mentioned_urls_freq_header, mentioned_urls_freq_path)
+        utils.write_csv(mentioned_urls, mentioned_urls_header, mentioned_urls_path)
 
     def export_source_urls_analysis(self, path):
         fake_source_urls = self.load_source_urls(news_label="fake")

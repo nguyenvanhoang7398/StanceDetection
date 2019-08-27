@@ -55,9 +55,9 @@ def load_re19(config):
 def load_fnn(config, news_label):
     fnn_loader = FakeNewsNetDatasetLoader(config.fnn_root)
     fnn_dataset = fnn_loader.load(clean=False, news_label=news_label)
-    fnn_dataset.export_full(os.path.join(config.fnn_root, "csi_{}_uncleaned.csv".format(news_label)))
+    fnn_dataset.export_full(os.path.join(config.fnn_root, "fnn_{}_uncleaned.csv".format(news_label)))
     fnn_dataset_cleaned = fnn_loader.load(clean=True, news_label=news_label)
-    fnn_dataset_cleaned.export_full(os.path.join(config.fnn_root, "csi_{}_cleaned.csv".format(news_label)))
+    fnn_dataset_cleaned.export_full(os.path.join(config.fnn_root, "fnn_{}_cleaned.csv".format(news_label)))
 
 
 def combine_stance_relation_all():
@@ -69,7 +69,9 @@ def combine_stance_relation_all():
 
 def analyse_fnn(config):
     fnn_loader = FakeNewsNetDatasetLoader(config.fnn_root)
-    fnn_loader.export_source_urls_analysis(os.path.join(config.fnn_root, "source_urls.csv"))
+    fnn_loader.export_mentioned_urls(os.path.join(config.fnn_root, "mentioned_urls.csv"),
+                                     os.path.join(config.fnn_root, "mentioned_urls_freq.csv"))
+    # fnn_loader.export_source_urls_analysis(os.path.join(config.fnn_root, "source_urls.csv"))
 
 
 def analyse(config):
@@ -84,8 +86,8 @@ def preprocess(config):
     # (config)
     # load_fnc_relation_full(config)
     # load_fnc_relation_split(config)
-    # load_fnn(config, "fake")
-    # load_fnn(config, "real")
+    load_fnn(config, "fake")
+    load_fnn(config, "real")
     # eval_stance("datasets/fnc_full/stance.tsv", "datasets/fnc_full/test.tsv")
     # eval_stance("datasets/fnc_relation_full/relation.tsv", "datasets/fnc_relation_full/test.tsv")
     # eval_stance("datasets/fnc_split/stance.tsv", "datasets/fnc_split/test.tsv")
@@ -95,7 +97,7 @@ def preprocess(config):
     # process_csi_dataset(config, tweet_limit_per_event=50)
     # process_annotated_datasets(config)
     # combine_stance_relation_all()
-    eval_stance("datasets/annotated/csi/cleaned/stance_relation.tsv", "datasets/annotated/csi/cleaned/test.tsv")
+    # eval_stance("datasets/annotated/csi/cleaned/stance_relation.tsv", "datasets/annotated/csi/cleaned/test.tsv")
 
     # load_re19(config)
 
@@ -150,6 +152,6 @@ if __name__ == "__main__":
     CONFIGS, unparsed = sd_parser.parse_known_args()
     config_json = utils.read_json(CONFIGS.config_path)
     sd_config = Config(config_json)
-    # preprocess(sd_config)
+    preprocess(sd_config)
     # experiment_summary(sd_config)
-    analyse(sd_config)
+    # analyse(sd_config)
