@@ -147,7 +147,7 @@ class FakeNewsNetDatasetLoader(BaseDatasetLoader):
                         print("Loaded {} Fake News Net tweets".format(str(i)))
                     tweet_path = os.path.join(tweet_dir, tweet_id)
                     tweet_content = utils.read_json(tweet_path)
-                    tweet_text = utils.clean_tweet_text(tweet_content["text"]) if clean else tweet_content["text"]
+                    tweet_text = utils.clean_tweet_text(tweet_content["text"]) if clean else tweet_content["text"].replace("\n", " ")
                     if len(news_title) > 0:
                         clean_tweet_text = utils.clean_stance_target(tweet_text, news_title) \
                             if clean else tweet_text
