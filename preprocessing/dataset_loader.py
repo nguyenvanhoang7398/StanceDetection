@@ -127,9 +127,13 @@ class FakeNewsNetDatasetLoader(BaseDatasetLoader):
             dataset_dir = os.path.join(self.fnn_root, dataset)
             news_label_dir = os.path.join(dataset_dir, news_label)
             for news_id in os.listdir(news_label_dir):
+                if i > 10000:
+                    break
                 news_dir = os.path.join(news_label_dir, news_id)
                 tweet_dir = os.path.join(news_dir, "tweets")
                 news_content_path = os.path.join(news_dir, "news content.json")
+                if not os.path.isfile(news_content_path):
+                    continue
                 news_content = utils.read_json(news_content_path)
                 news_title = news_content["title"] if "title" in news_content else ""
                 news_description = news_content["meta_data"]["description"] \
@@ -137,13 +141,14 @@ class FakeNewsNetDatasetLoader(BaseDatasetLoader):
                 if clean:
                     news_title = utils.clean_tweet_text(news_title)
                     news_description = utils.clean_tweet_text(news_description)
-
+                if not os.path.isdir(tweet_dir):
+                    continue
                 for tweet_id in os.listdir(tweet_dir):
                     if i % self.info_every == 0:
                         print("Loaded {} Fake News Net tweets".format(str(i)))
                     tweet_path = os.path.join(tweet_dir, tweet_id)
                     tweet_content = utils.read_json(tweet_path)
-                    tweet_text = utils.clean_tweet_text(tweet_content["text"]) if clean else tweet_content["text"]
+                    tweet_text = utils.clean_tweet_text(tweet_content["text"]) if clean else tweet_content["text"].replace("\n", " ")
                     if len(news_title) > 0:
                         clean_tweet_text = utils.clean_stance_target(tweet_text, news_title) \
                             if clean else tweet_text
