@@ -17,7 +17,7 @@ class BaseDatasetLoader(object):
 class FakeNewsNetDatasetLoader(BaseDatasetLoader):
 
     DEFAULT_STANCE = "comment"
-    DATASETS = ["politifact"]
+    DATASETS = ["csi"]
 
     def __init__(self, fnn_root, info_every=10):
         super().__init__(info_every)
@@ -118,7 +118,6 @@ class FakeNewsNetDatasetLoader(BaseDatasetLoader):
 
         return source_urls
 
-
     def load(self, clean=True, news_label="fake"):
         feature_set, label_set = [], []
 
@@ -127,9 +126,13 @@ class FakeNewsNetDatasetLoader(BaseDatasetLoader):
             dataset_dir = os.path.join(self.fnn_root, dataset)
             news_label_dir = os.path.join(dataset_dir, news_label)
             for news_id in os.listdir(news_label_dir):
+                if i > 10000:
+                    break
                 news_dir = os.path.join(news_label_dir, news_id)
                 tweet_dir = os.path.join(news_dir, "tweets")
                 news_content_path = os.path.join(news_dir, "news content.json")
+                if not os.path.isfile(news_content_path):
+                    continue
                 news_content = utils.read_json(news_content_path)
                 news_title = news_content["title"] if "title" in news_content else ""
                 news_description = news_content["meta_data"]["description"] \
@@ -137,7 +140,8 @@ class FakeNewsNetDatasetLoader(BaseDatasetLoader):
                 if clean:
                     news_title = utils.clean_tweet_text(news_title)
                     news_description = utils.clean_tweet_text(news_description)
-
+                if not os.path.isdir(tweet_dir):
+                    continue
                 for tweet_id in os.listdir(tweet_dir):
                     if i % self.info_every == 0:
                         print("Loaded {} Fake News Net tweets".format(str(i)))

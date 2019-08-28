@@ -52,20 +52,28 @@ def process_csi_dataset(config, tweet_limit_per_event=None):
 
 def process_annotated_datasets(config):
     annotated_root = os.path.join("datasets", "annotated")
-    csi_fake_cleaned = process_annotated_dataset(os.path.join(annotated_root, "csi_fake_cleaned.xlsx"))
-    csi_real_cleaned = process_annotated_dataset(os.path.join(annotated_root, "csi_real_cleaned.xlsx"))
-    csi_fake_uncleaned = process_annotated_dataset(os.path.join(annotated_root, "csi_fake_uncleaned.xlsx"))
-    csi_real_uncleaned = process_annotated_dataset(os.path.join(annotated_root, "csi_real_uncleaned.xlsx"))
-    csi_cleaned = pd.concat([csi_fake_cleaned, csi_real_cleaned], sort=False)
-    csi_uncleaned = pd.concat([csi_fake_uncleaned, csi_real_uncleaned], sort=False)
+    # csi_fake_cleaned = process_annotated_dataset(os.path.join(annotated_root, "csi_fake_cleaned.xlsx"))
+    # csi_real_cleaned = process_annotated_dataset(os.path.join(annotated_root, "csi_real_cleaned.xlsx"))
+    # csi_fake_cleaned_old = process_annotated_dataset(os.path.join(annotated_root, "csi_fake_cleaned_old.xlsx"))
+    # csi_real_cleaned_old = process_annotated_dataset(os.path.join(annotated_root, "csi_real_cleaned_old.xlsx"))
+    # csi_fake_uncleaned = process_annotated_dataset(os.path.join(annotated_root, "csi_fake_uncleaned.xlsx"))
+    # csi_real_uncleaned = process_annotated_dataset(os.path.join(annotated_root, "csi_real_uncleaned.xlsx"))
+    # csi_fake_uncleaned_old = process_annotated_dataset(os.path.join(annotated_root, "csi_fake_uncleaned_old.xlsx"))
+    # csi_real_uncleaned_old = process_annotated_dataset(os.path.join(annotated_root, "csi_real_uncleaned_old.xlsx"))
+    # csi_cleaned = pd.concat([csi_fake_cleaned, csi_real_cleaned, csi_fake_cleaned_old, csi_real_cleaned_old], sort=False)
+    # csi_uncleaned = pd.concat([csi_fake_uncleaned, csi_real_uncleaned, csi_fake_uncleaned_old, csi_real_uncleaned_old], sort=False)
     fnn_fake_cleaned = process_annotated_dataset(os.path.join(annotated_root, "fnn_fake_cleaned.xlsx"))
     fnn_real_cleaned = process_annotated_dataset(os.path.join(annotated_root, "fnn_real_cleaned.xlsx"))
+    fnn_fake_cleaned_old = process_annotated_dataset(os.path.join(annotated_root, "fnn_fake_cleaned_old.xlsx"))
+    fnn_real_cleaned_old = process_annotated_dataset(os.path.join(annotated_root, "fnn_real_cleaned_old.xlsx"))
     fnn_fake_uncleaned = process_annotated_dataset(os.path.join(annotated_root, "fnn_fake_uncleaned.xlsx"))
     fnn_real_uncleaned = process_annotated_dataset(os.path.join(annotated_root, "fnn_real_uncleaned.xlsx"))
-    fnn_cleaned = pd.concat([fnn_fake_cleaned, fnn_real_cleaned], sort=False)
-    fnn_uncleaned = pd.concat([fnn_fake_uncleaned, fnn_real_uncleaned], sort=False)
-    csi_cleaned.to_csv(os.path.join(annotated_root, "csi", "cleaned", "test.tsv"), index=False, sep='\t')
-    csi_uncleaned.to_csv(os.path.join(annotated_root, "csi", "uncleaned", "test.tsv"), index=False, sep='\t')
+    fnn_fake_uncleaned_old = process_annotated_dataset(os.path.join(annotated_root, "fnn_fake_uncleaned_old.xlsx"))
+    fnn_real_uncleaned_old = process_annotated_dataset(os.path.join(annotated_root, "fnn_real_uncleaned_old.xlsx"))
+    fnn_cleaned = pd.concat([fnn_fake_cleaned, fnn_real_cleaned, fnn_fake_cleaned_old, fnn_real_cleaned_old], sort=False)
+    fnn_uncleaned = pd.concat([fnn_fake_uncleaned, fnn_real_uncleaned, fnn_fake_uncleaned_old, fnn_real_uncleaned_old], sort=False)
+    # csi_cleaned.to_csv(os.path.join(annotated_root, "csi", "cleaned", "test.tsv"), index=False, sep='\t')
+    # csi_uncleaned.to_csv(os.path.join(annotated_root, "csi", "uncleaned", "test.tsv"), index=False, sep='\t')
     fnn_cleaned.to_csv(os.path.join(annotated_root, "fnn", "cleaned", "test.tsv"), index=False, sep='\t')
     fnn_uncleaned.to_csv(os.path.join(annotated_root, "fnn", "uncleaned", "test.tsv"), index=False, sep='\t')
 
@@ -78,8 +86,9 @@ def process_annotated_dataset(annotated_path):
     print(filtered_report_df.describe())
     filtered_report_df = filtered_report_df.drop("report", axis=0).dropna(how="all")
     filtered_report_df = filtered_report_df.reset_index()
-    print(filtered_report_df.columns)
-    filtered_report_df["source"] = filtered_report_df["source"].map(lambda x: str(x).replace("\n", " "))
-    filtered_report_df["target"] = filtered_report_df["target"].map(lambda x: str(x).replace("\n", " "))
-    filtered_report_df = filtered_report_df[["index", "source", "target", "stance"]]
-    return filtered_report_df
+    filtered_clean_df = filtered_report_df[filtered_report_df["clean"]]
+    print(filtered_clean_df.columns)
+    filtered_clean_df["source"] = filtered_clean_df["source"].map(lambda x: str(x).replace("\n", " "))
+    filtered_clean_df["target"] = filtered_clean_df["target"].map(lambda x: str(x).replace("\n", " "))
+    filtered_clean_df = filtered_clean_df[["index", "source", "target", "stance"]]
+    return filtered_clean_df
