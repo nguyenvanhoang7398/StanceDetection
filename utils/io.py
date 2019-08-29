@@ -9,7 +9,8 @@ def read_json(path):
 def write_csv(content, header, path, delimiter=","):
     with open(path, 'w', encoding="utf-8", newline='') as f:
         csv_writer = csv.writer(f, delimiter=delimiter, quotechar='"', quoting=csv.QUOTE_MINIMAL)
-        csv_writer.writerow(header)
+        if header is not None:
+            csv_writer.writerow(header)
 
         for row in content:
             csv_writer.writerow(row)

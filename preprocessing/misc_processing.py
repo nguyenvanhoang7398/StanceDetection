@@ -1,5 +1,6 @@
 import os
 import pandas as pd
+from sklearn.model_selection import train_test_split
 import utils
 
 
@@ -90,3 +91,17 @@ def process_annotated_dataset(annotated_path):
 def post_process_annotated_dataset(df):
     final_df = df.drop_duplicates(subset=["source", "target"])
     return final_df
+
+
+def process_text_classification(stance_path, stance_dataset_dir):
+    stance_dataset = utils.read_csv(stance_path)
+    stance_map = {
+        "support": 0,
+        "deny": 1,
+        "comment": 2,
+        "unrelated": 3
+    }
+    content_out = [[row[1], row[2], stance_map[row[3]]] for row in stance_dataset]
+    train, test = train_test_split(content_out, test_size=0.1, random_state=9)
+    utils.write_csv(train, None, os.path.join(stance_dataset_dir, "data.train"), delimiter="\t")
+    utils.write_csv(test, None, os.path.join(stance_dataset_dir, "data.test"), delimiter="\t")
