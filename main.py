@@ -86,8 +86,8 @@ def preprocess(config):
     # (config)
     # load_fnc_relation_full(config)
     # load_fnc_relation_split(config)
-    # load_fnn(config, "fake")
-    # load_fnn(config, "real")
+    load_fnn(config, "fake")
+    load_fnn(config, "real")
     # eval_stance("datasets/fnc_full/stance.tsv", "datasets/fnc_full/test.tsv")
     # eval_stance("datasets/fnc_relation_full/relation.tsv", "datasets/fnc_relation_full/test.tsv")
     # eval_stance("datasets/fnc_split/stance.tsv", "datasets/fnc_split/test.tsv")
@@ -95,7 +95,7 @@ def preprocess(config):
     # eval_stance("datasets/rumor_eval_19/only_twitter/fold_1/stance.tsv",
     #             "datasets/rumor_eval_19/only_twitter/fold_1/dev.tsv")
     # process_csi_dataset(config, tweet_limit_per_event=50)
-    process_annotated_datasets(config)
+    # process_annotated_datasets(config)
     # combine_stance_relation_all()
     # eval_stance("datasets/annotated/csi/cleaned/stance_relation.tsv", "datasets/annotated/csi/cleaned/test.tsv")
 

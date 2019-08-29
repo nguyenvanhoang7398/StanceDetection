@@ -86,9 +86,10 @@ def process_annotated_dataset(annotated_path):
     print(filtered_report_df.describe())
     filtered_report_df = filtered_report_df.drop("report", axis=0).dropna(how="all")
     filtered_report_df = filtered_report_df.reset_index()
-    filtered_clean_df = filtered_report_df[filtered_report_df["clean"]]
+    filtered_clean_df = filtered_report_df[filtered_report_df["clean"] != 0] 
     print(filtered_clean_df.columns)
-    filtered_clean_df["source"] = filtered_clean_df["source"].map(lambda x: str(x).replace("\n", " "))
-    filtered_clean_df["target"] = filtered_clean_df["target"].map(lambda x: str(x).replace("\n", " "))
+    filtered_clean_df["source"] = filtered_clean_df["source"].map(lambda x: utils.clean_tweet_text(str(x).lower()).replace("\n", " "))
+    filtered_clean_df["target"] = filtered_clean_df["target"].map(lambda x: utils.clean_tweet_text(str(x).lower()).replace("\n", " "))
     filtered_clean_df = filtered_clean_df[["index", "source", "target", "stance"]]
+    filtered_clean_df = filtered_clean_df.drop_duplicates(subset=["source", "target"])
     return filtered_clean_df

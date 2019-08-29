@@ -17,7 +17,7 @@ class BaseDatasetLoader(object):
 class FakeNewsNetDatasetLoader(BaseDatasetLoader):
 
     DEFAULT_STANCE = "comment"
-    DATASETS = ["csi"]
+    DATASETS = ["politifact"]
 
     def __init__(self, fnn_root, info_every=10):
         super().__init__(info_every)
@@ -126,7 +126,7 @@ class FakeNewsNetDatasetLoader(BaseDatasetLoader):
             dataset_dir = os.path.join(self.fnn_root, dataset)
             news_label_dir = os.path.join(dataset_dir, news_label)
             for news_id in os.listdir(news_label_dir):
-                if i > 10000:
+                if i > 20000:
                     break
                 news_dir = os.path.join(news_label_dir, news_id)
                 tweet_dir = os.path.join(news_dir, "tweets")
@@ -148,16 +148,17 @@ class FakeNewsNetDatasetLoader(BaseDatasetLoader):
                     tweet_path = os.path.join(tweet_dir, tweet_id)
                     tweet_content = utils.read_json(tweet_path)
                     tweet_text = utils.clean_tweet_text(tweet_content["text"]) if clean else tweet_content["text"].replace("\n", " ")
-                    if len(news_title) > 0:
-                        clean_tweet_text = utils.clean_stance_target(tweet_text, news_title) \
-                            if clean else tweet_text
-                        feature_set.append([clean_tweet_text, news_title])
-                        label_set.append(self.DEFAULT_STANCE)
-                    if len(news_description) > 0:
-                        clean_tweet_text = utils.clean_stance_target(tweet_text, news_description) \
-                            if clean else tweet_text
-                        feature_set.append([clean_tweet_text, news_description])
-                        label_set.append(self.DEFAULT_STANCE)
+                    if i > 10000:
+                        if len(news_title) > 0:
+                            clean_tweet_text = utils.clean_stance_target(tweet_text, news_title) \
+                                if clean else tweet_text
+                            feature_set.append([clean_tweet_text, news_title])
+                            label_set.append(self.DEFAULT_STANCE)
+                        if len(news_description) > 0:
+                            clean_tweet_text = utils.clean_stance_target(tweet_text, news_description) \
+                                if clean else tweet_text
+                            feature_set.append([clean_tweet_text, news_description])
+                            label_set.append(self.DEFAULT_STANCE)
                     i += 1
 
         return StanceDataset(feature_set, label_set)
