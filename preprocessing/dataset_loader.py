@@ -118,7 +118,7 @@ class FakeNewsNetDatasetLoader(BaseDatasetLoader):
 
         return source_urls
 
-    def load(self, clean=True, news_label="fake"):
+    def load(self, clean=True, news_label="fake", batch_range=()):
         feature_set, label_set = [], []
 
         i = 0
@@ -126,7 +126,7 @@ class FakeNewsNetDatasetLoader(BaseDatasetLoader):
             dataset_dir = os.path.join(self.fnn_root, dataset)
             news_label_dir = os.path.join(dataset_dir, news_label)
             for news_id in os.listdir(news_label_dir):
-                if i > 20000:
+                if len(batch_range) > 0 and i > batch_range[1]:
                     break
                 news_dir = os.path.join(news_label_dir, news_id)
                 tweet_dir = os.path.join(news_dir, "tweets")
@@ -148,7 +148,7 @@ class FakeNewsNetDatasetLoader(BaseDatasetLoader):
                     tweet_path = os.path.join(tweet_dir, tweet_id)
                     tweet_content = utils.read_json(tweet_path)
                     tweet_text = utils.clean_tweet_text(tweet_content["text"]) if clean else tweet_content["text"].replace("\n", " ")
-                    if i > 10000:
+                    if len(batch_range) > 0 and i > batch_range[0]:
                         if len(news_title) > 0:
                             clean_tweet_text = utils.clean_stance_target(tweet_text, news_title) \
                                 if clean else tweet_text
