@@ -96,11 +96,12 @@ def preprocess(config):
     #             "datasets/rumor_eval_19/only_twitter/fold_1/dev.tsv")
     # process_csi_dataset(config, tweet_limit_per_event=50)
     # process_annotated_datasets(config)
-    process_text_classification("datasets/annotated/fnn/cleaned/data.tsv", "datasets/annotated/fnn/cleaned/")
-    process_text_classification("datasets/annotated/fnn/uncleaned/data.tsv", "datasets/annotated/fnn/uncleaned/")
-    # combine_stance_relation_all()
+    # process_text_classification("datasets/annotated/fnn/cleaned/data.tsv", "datasets/annotated/fnn/cleaned/")
+    # process_text_classification("datasets/annotated/fnn/uncleaned/data.tsv", "datasets/annotated/fnn/uncleaned/")
+    # # combine_stance_relation_all()
     # eval_stance("datasets/annotated/csi/cleaned/stance_relation.tsv", "datasets/annotated/csi/cleaned/test.tsv")
-
+    process_fnn("datasets/annotated/fnn/cleaned/data.tsv", "datasets/fnn/cleaned")
+    process_fnn("datasets/annotated/fnn/uncleaned/data.tsv", "datasets/fnn/uncleaned")
     # load_re19(config)
 
 

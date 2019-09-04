@@ -1,7 +1,18 @@
 import os
 import pandas as pd
+from preprocessing import StanceDataset
 from sklearn.model_selection import train_test_split
 import utils
+
+
+def process_fnn(fnn_csv_path, output_dir, num_folds=10):
+    csv_content = utils.read_csv(fnn_csv_path, delimiter="\t")
+    features, labels = [], []
+    for sample in csv_content:
+        features.append([sample[1], sample[2]])
+        labels.append([sample[3]])
+    stance_dataset = StanceDataset(features, labels)
+    stance_dataset.export_cross_eval(output_dir, num_folds)
 
 
 def combine_stance_relation(root_path):
