@@ -89,7 +89,7 @@ def process_annotated_dataset(annotated_path):
     print(filtered_report_df.describe())
     filtered_report_df = filtered_report_df.drop("report", axis=0).dropna(how="all")
     filtered_report_df = filtered_report_df.reset_index()
-    filtered_clean_df = filtered_report_df[filtered_report_df["clean"] == 0]
+    filtered_clean_df = filtered_report_df[filtered_report_df["clean"] == 1]
     print(filtered_clean_df.columns)
     filtered_clean_df["source"] = filtered_clean_df["source"] \
         .map(lambda x: utils.clean_tweet_text(str(x).lower()).replace("\n", " "))
@@ -105,14 +105,17 @@ def post_process_annotated_dataset(df):
 
 
 def process_text_classification(stance_path, stance_dataset_dir):
-    stance_dataset = utils.read_csv(stance_path)
+    stance_dataset = utils.read_csv(stance_path, delimiter="\t")
     stance_map = {
-        "support": 0,
-        "deny": 1,
-        "comment": 2,
-        "unrelated": 3
+        "support": "support_1",
+        "deny": "deny_2",
+        "comment": "comment_3",
+        "unrelated": "unrelated_4"
     }
-    content_out = [[row[1], row[2], stance_map[row[3]]] for row in stance_dataset]
+ content_out = []
+    for row in stance_dataset:
+        if len(row[1].strip().rstrip()) > 0 and len(row[2].strip().rstrip()) > 0:
+            content_out.append([row[1], row[2], stance_map[row[3].rstrip()]])    
     train, test = train_test_split(content_out, test_size=0.1, random_state=9)
     utils.write_csv(train, None, os.path.join(stance_dataset_dir, "data.train"), delimiter="\t")
     utils.write_csv(test, None, os.path.join(stance_dataset_dir, "data.test"), delimiter="\t")
