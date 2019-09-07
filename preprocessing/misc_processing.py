@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-from preprocessing import StanceDataset
+from preprocessing.dataset import StanceDataset
 from sklearn.model_selection import train_test_split
 import utils
 
@@ -10,7 +10,7 @@ def process_fnn(fnn_csv_path, output_dir, num_folds=10):
     features, labels = [], []
     for sample in csv_content:
         features.append([sample[1], sample[2]])
-        labels.append([sample[3]])
+        labels.append(sample[3].rstrip())
     stance_dataset = StanceDataset(features, labels)
     stance_dataset.export_cross_eval(output_dir, num_folds)
 
@@ -112,7 +112,7 @@ def process_text_classification(stance_path, stance_dataset_dir):
         "comment": "comment_3",
         "unrelated": "unrelated_4"
     }
- content_out = []
+    content_out = []
     for row in stance_dataset:
         if len(row[1].strip().rstrip()) > 0 and len(row[2].strip().rstrip()) > 0:
             content_out.append([row[1], row[2], stance_map[row[3].rstrip()]])    

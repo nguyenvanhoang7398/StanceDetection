@@ -85,5 +85,5 @@ class StanceDataset(BaseDataset):
         super(StanceDataset, self).__init__(feature_set, label_set)
 
     @staticmethod
-    def validate_labels(label):
+    def validate_labels(label): 
         assert label in ["support", "deny", "comment", "unrelated"]
