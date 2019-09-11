@@ -10,6 +10,7 @@ def add_arguments(parser):
     """Build ArgumentParser."""
     parser.register("type", "bool", lambda v: v.lower() == "true")
     parser.add_argument("--config-path", type=str, default="config/config.json", help="Path to config file")
+    parser.add_argument("--dataset-name", type=str, default="stance_fnn", help="Dataset name to preprocess")
 
 
 def load_fnc_full(config):
@@ -78,7 +79,33 @@ def analyse(config):
     analyse_fnn(config)
 
 
-def preprocess(config):
+def preprocess_stance_fnc(config):
+    fnc_loader = FncLoader(config.fnc_root)
+    fnc_dataset = fnc_loader.load()
+    fnc_path = os.path.join(config.fnc_root, "data.tsv")
+    fnc_dataset.export_full(fnc_path, delimiter="\t")
+    fnc_train_path, fnc_test_path = process_text_classification(fnc_path, os.path.dirname(fnc_path))
+    cross_val(fnc_train_path, os.path.dirname(fnc_train_path), num_folds=10)
+
+
+def preprocess_stance_fnn(config):
+    cleaned_output_path, uncleaned_output_path = process_annotated_datasets(config)
+    cleaned_train_path, cleaned_test_path = \
+        process_text_classification(cleaned_output_path, os.path.dirname(cleaned_output_path))
+    uncleaned_train_path, uncleaned_test_path = \
+        process_text_classification(uncleaned_output_path, os.path.dirname(uncleaned_output_path))
+    cross_val(cleaned_train_path, os.path.dirname(cleaned_train_path), num_folds=10)
+    cross_val(uncleaned_train_path, os.path.dirname(uncleaned_train_path), num_folds=10)
+
+
+def preprocess(dataset_name, config):
+    if dataset_name == "stance_fnn":
+        preprocess_stance_fnn(config)
+    elif dataset_name == "stance_fnc":
+        preprocess_stance_fnc(config)
+    else:
+        raise ValueError("Unrecognized stance dataset {}".format(dataset_name))
+
     # load_fnc_full(config)
     # load_fnc_split(config)
     # load_re17(config)
@@ -95,13 +122,10 @@ def preprocess(config):
     # eval_stance("datasets/rumor_eval_19/only_twitter/fold_1/stance.tsv",
     #             "datasets/rumor_eval_19/only_twitter/fold_1/dev.tsv")
     # process_csi_dataset(config, tweet_limit_per_event=50)
-    # process_annotated_datasets(config)
     # process_text_classification("datasets/annotated/fnn/cleaned/data.tsv", "datasets/annotated/fnn/cleaned/")
     # process_text_classification("datasets/annotated/fnn/uncleaned/data.tsv", "datasets/annotated/fnn/uncleaned/")
     # # combine_stance_relation_all()
     # eval_stance("datasets/annotated/csi/cleaned/stance_relation.tsv", "datasets/annotated/csi/cleaned/test.tsv")
-    process_fnn("datasets/annotated/fnn/cleaned/data.tsv", "datasets/fnn/cleaned")
-    process_fnn("datasets/annotated/fnn/uncleaned/data.tsv", "datasets/fnn/uncleaned")
     # load_re19(config)
 
 
@@ -155,6 +179,6 @@ if __name__ == "__main__":
     CONFIGS, unparsed = sd_parser.parse_known_args()
     config_json = utils.read_json(CONFIGS.config_path)
     sd_config = Config(config_json)
-    preprocess(sd_config)
+    preprocess(CONFIGS.dataset_name, sd_config)
     # experiment_summary(sd_config)
     # analyse(sd_config)

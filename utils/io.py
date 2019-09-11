@@ -1,5 +1,6 @@
 import csv
 import json
+import os
 
 
 def read_json(path):
@@ -7,6 +8,7 @@ def read_json(path):
 
 
 def write_csv(content, header, path, delimiter=","):
+    path = ensure_path(path)
     with open(path, 'w', encoding="utf-8", newline='') as f:
         csv_writer = csv.writer(f, delimiter=delimiter, quotechar='"', quoting=csv.QUOTE_MINIMAL)
         if header is not None:
@@ -25,3 +27,21 @@ def read_csv(path, load_header=False, delimiter=","):
         else:
             [content.append(row) for i, row in enumerate(csv_reader) if i > 0]
     return content
+
+
+def ensure_path(path):
+    directory = os.path.dirname(path)
+    if not os.path.exists(directory):
+        os.makedirs(directory, exist_ok=True)
+    return path
+
+
+def save_list_as_text(data, output_path):
+    with open(output_path, "w", encoding="utf-8") as f:
+        for word in data:
+            f.write("{}\n".format(word))
+
+
+def load_text_as_list(output_path):
+    with open(output_path, 'r', encoding="utf-8") as f:
+        return f.read().splitlines()

@@ -1,3 +1,5 @@
+import numpy as np
+from sklearn.model_selection import KFold
 import os
 import pandas as pd
 from preprocessing.dataset import StanceDataset
@@ -7,11 +9,12 @@ import utils
 
 def process_fnn(fnn_csv_path, output_dir, num_folds=10):
     csv_content = utils.read_csv(fnn_csv_path, delimiter="\t")
-    features, labels = [], []
+    idxs, features, labels = [], [], []
     for sample in csv_content:
+        idxs.append(sample[0])
         features.append([sample[1], sample[2]])
         labels.append(sample[3].rstrip())
-    stance_dataset = StanceDataset(features, labels)
+    stance_dataset = StanceDataset(features, labels, idxs=idxs)
     stance_dataset.export_cross_eval(output_dir, num_folds)
 
 
@@ -63,7 +66,7 @@ def process_csi_dataset(config, tweet_limit_per_event=None):
 
 
 def process_annotated_datasets(config):
-    annotated_root = os.path.join("datasets", "annotated")
+    annotated_root = os.path.join("datasets", "fnn")
     all_batch_dir = os.path.join(annotated_root, "batches")
     fnn_cleaned_dfs, fnn_uncleaned_dfs = [], []
     for batch in os.listdir(all_batch_dir):
@@ -78,8 +81,11 @@ def process_annotated_datasets(config):
     fnn_uncleaned = pd.concat(fnn_uncleaned_dfs, sort=False)
     fnn_cleaned = post_process_annotated_dataset(fnn_cleaned)
     fnn_uncleaned = post_process_annotated_dataset(fnn_uncleaned)
-    fnn_cleaned.to_csv(os.path.join(annotated_root, "fnn", "cleaned", "data.tsv"), index=False, sep='\t')
-    fnn_uncleaned.to_csv(os.path.join(annotated_root, "fnn", "uncleaned", "data.tsv"), index=False, sep='\t')
+    cleaned_output_path = os.path.join(annotated_root, "cleaned", "data.tsv")
+    uncleaned_output_path = os.path.join(annotated_root, "uncleaned", "data.tsv")
+    fnn_cleaned.to_csv(cleaned_output_path, index=False, sep='\t')
+    fnn_uncleaned.to_csv(uncleaned_output_path, index=False, sep='\t')
+    return cleaned_output_path, uncleaned_output_path
 
 
 def process_annotated_dataset(annotated_path):
@@ -87,7 +93,10 @@ def process_annotated_dataset(annotated_path):
     annotated_df = pd.read_excel(pd.ExcelFile(annotated_path))
     filtered_report_df = annotated_df.set_index("stance")
     print(filtered_report_df.describe())
-    filtered_report_df = filtered_report_df.drop("report", axis=0).dropna(how="all")
+    try:
+        filtered_report_df = filtered_report_df.drop("report", axis=0).dropna(how="all")
+    except KeyError as e:
+        print(str(e))
     filtered_report_df = filtered_report_df.reset_index()
     filtered_clean_df = filtered_report_df[filtered_report_df["clean"] == 1]
     print(filtered_clean_df.columns)
@@ -95,27 +104,41 @@ def process_annotated_dataset(annotated_path):
         .map(lambda x: utils.clean_tweet_text(str(x).lower()).replace("\n", " "))
     filtered_clean_df["target"] = filtered_clean_df["target"] \
         .map(lambda x: utils.clean_tweet_text(str(x).lower()).replace("\n", " "))
-    filtered_clean_df = filtered_clean_df[["index", "source", "target", "stance"]]
+    filtered_clean_df["stance"] = filtered_clean_df["stance"] \
+        .map(lambda x: x.strip().rstrip())
+    filtered_clean_df = filtered_clean_df[["source", "target", "stance"]]
     return filtered_clean_df
 
 
 def post_process_annotated_dataset(df):
     final_df = df.drop_duplicates(subset=["source", "target"])
+    final_df['idx'] = range(1, len(final_df) + 1)
+    final_df = final_df[["idx", "source", "target", "stance"]]
     return final_df
 
 
 def process_text_classification(stance_path, stance_dataset_dir):
     stance_dataset = utils.read_csv(stance_path, delimiter="\t")
-    stance_map = {
-        "support": "support_1",
-        "deny": "deny_2",
-        "comment": "comment_3",
-        "unrelated": "unrelated_4"
-    }
     content_out = []
     for row in stance_dataset:
         if len(row[1].strip().rstrip()) > 0 and len(row[2].strip().rstrip()) > 0:
-            content_out.append([row[1], row[2], stance_map[row[3].rstrip()]])    
+            content_out.append([row[0], row[1], row[2], row[3].rstrip()])
     train, test = train_test_split(content_out, test_size=0.1, random_state=9)
-    utils.write_csv(train, None, os.path.join(stance_dataset_dir, "data.train"), delimiter="\t")
-    utils.write_csv(test, None, os.path.join(stance_dataset_dir, "data.test"), delimiter="\t")
+    train_path = os.path.join(stance_dataset_dir, "data_all.train")
+    test_path = os.path.join(stance_dataset_dir, "data.test")
+    utils.write_csv(train, None, train_path, delimiter="\t")
+    utils.write_csv(test, None, test_path, delimiter="\t")
+    return train_path, test_path
+
+
+def cross_val(input_path, output_dir, num_folds):
+    kf = KFold(n_splits=num_folds)
+    data = np.array(utils.load_text_as_list(input_path))
+    fold = 1
+    for train_index, test_index in kf.split(data):
+        fold_dir = os.path.join(output_dir, "fold_{}".format(fold))
+        print("Creating fold {} at {}".format(fold, output_dir))
+        data_train, data_test = data[train_index], data[test_index]
+        utils.save_list_as_text(data_train, utils.ensure_path(os.path.join(fold_dir, "data.train")))
+        utils.save_list_as_text(data_test, utils.ensure_path(os.path.join(fold_dir, "data.val")))
+        fold += 1
