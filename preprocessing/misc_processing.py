@@ -71,10 +71,12 @@ def process_annotated_datasets(config):
     fnn_cleaned_dfs, fnn_uncleaned_dfs = [], []
     for batch in os.listdir(all_batch_dir):
         batch_dir = os.path.join(all_batch_dir, batch)
-        fnn_fake_cleaned = process_annotated_dataset(os.path.join(batch_dir, "fnn_fake_cleaned.xlsx"))
-        fnn_real_cleaned = process_annotated_dataset(os.path.join(batch_dir, "fnn_real_cleaned.xlsx"))
-        fnn_fake_uncleaned = process_annotated_dataset(os.path.join(batch_dir, "fnn_fake_uncleaned.xlsx"))
-        fnn_real_uncleaned = process_annotated_dataset(os.path.join(batch_dir, "fnn_real_uncleaned.xlsx"))
+        fnn_fake_cleaned = process_annotated_dataset(os.path.join(batch_dir, "fnn_fake_uncleaned.xlsx"))
+        fnn_real_cleaned = process_annotated_dataset(os.path.join(batch_dir, "fnn_real_uncleaned.xlsx"))
+        fnn_fake_uncleaned = process_annotated_dataset(os.path.join(batch_dir, "fnn_fake_uncleaned.xlsx"),
+                                                       cleaning=False)
+        fnn_real_uncleaned = process_annotated_dataset(os.path.join(batch_dir, "fnn_real_uncleaned.xlsx"),
+                                                       cleaning=False)
         fnn_cleaned_dfs += [fnn_fake_cleaned, fnn_real_cleaned]
         fnn_uncleaned_dfs += [fnn_fake_uncleaned, fnn_real_uncleaned]
     fnn_cleaned = pd.concat(fnn_cleaned_dfs, sort=False)
@@ -83,29 +85,28 @@ def process_annotated_datasets(config):
     fnn_uncleaned = post_process_annotated_dataset(fnn_uncleaned)
     cleaned_output_path = os.path.join(annotated_root, "cleaned", "data.tsv")
     uncleaned_output_path = os.path.join(annotated_root, "uncleaned", "data.tsv")
-    fnn_cleaned.to_csv(cleaned_output_path, index=False, sep='\t')
-    fnn_uncleaned.to_csv(uncleaned_output_path, index=False, sep='\t')
+    fnn_cleaned.to_csv(utils.io.ensure_path(cleaned_output_path), index=False, sep='\t')
+    fnn_uncleaned.to_csv(utils.io.ensure_path(uncleaned_output_path), index=False, sep='\t')
     return cleaned_output_path, uncleaned_output_path
 
 
-def process_annotated_dataset(annotated_path):
+def process_annotated_dataset(annotated_path, cleaning=True):
     print("Process annotated dataset at {}".format(annotated_path))
     annotated_df = pd.read_excel(pd.ExcelFile(annotated_path))
     filtered_report_df = annotated_df.set_index("stance")
-    print(filtered_report_df.describe())
     try:
         filtered_report_df = filtered_report_df.drop("report", axis=0).dropna(how="all")
     except KeyError as e:
         print(str(e))
     filtered_report_df = filtered_report_df.reset_index()
     filtered_clean_df = filtered_report_df[filtered_report_df["clean"] == 1]
-    print(filtered_clean_df.columns)
     filtered_clean_df["source"] = filtered_clean_df["source"] \
-        .map(lambda x: utils.clean_tweet_text(str(x).lower()).replace("\n", " "))
+        .map(lambda x: utils.simple_clean(x))
     filtered_clean_df["target"] = filtered_clean_df["target"] \
-        .map(lambda x: utils.clean_tweet_text(str(x).lower()).replace("\n", " "))
-    filtered_clean_df["stance"] = filtered_clean_df["stance"] \
-        .map(lambda x: x.strip().rstrip())
+        .map(lambda x: utils.simple_clean(x))
+    if cleaning:
+        filtered_clean_df["source"] = filtered_clean_df["source"] \
+            .map(lambda x: utils.clean_tweet_text(x))
     filtered_clean_df = filtered_clean_df[["source", "target", "stance"]]
     return filtered_clean_df
 
@@ -123,7 +124,7 @@ def process_text_classification(stance_path, stance_dataset_dir):
     for row in stance_dataset:
         if len(row[1].strip().rstrip()) > 0 and len(row[2].strip().rstrip()) > 0:
             content_out.append([row[0], row[1], row[2], row[3].rstrip()])
-    train, test = train_test_split(content_out, test_size=0.1, random_state=9)
+    train, test = train_test_split(content_out, test_size=0.05, random_state=9)
     train_path = os.path.join(stance_dataset_dir, "data_all.train")
     test_path = os.path.join(stance_dataset_dir, "data.test")
     utils.write_csv(train, None, train_path, delimiter="\t")

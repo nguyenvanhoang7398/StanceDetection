@@ -2,6 +2,7 @@ from difflib import SequenceMatcher
 import preprocessor as p
 import re
 import string
+import wordninja
 
 
 def strip_urls(text):
@@ -26,9 +27,42 @@ def strip_tags(text):
     return ' '.join(words)
 
 
+def is_number(s):
+    return s.replace('.', '', 1).isdigit()
+
+
+def simple_clean(text):
+    return str(text).lower().replace("\n", " ").replace("\t", " ").strip().rstrip()
+
+
 def clean_tweet_text(tweet_text): 
     tweet_text = tweet_text.replace("’", "'").replace("…", "...")
-    return remove_punctuations(p.clean(tweet_text.replace("#", "")).split("via")[0].split("|")[0].split(" - ")[0].split(" – ")[0]).rstrip()
+    tweet_parser = p.parse(tweet_text)
+    cleaned_tweet = tweet_text
+    hash_tags = tweet_parser.hashtags
+    if hash_tags is not None:
+        for hash_tag in hash_tags:
+            cleaned_tweet = cleaned_tweet.replace(hash_tag.match, " ".join(wordninja.split(hash_tag.match[1:])))
+    tweet_urls = tweet_parser.urls
+    if tweet_urls is not None:
+        for url_link in tweet_urls:
+            cleaned_tweet = cleaned_tweet.replace(url_link.match, " url$$ ")
+    tweet_emojis = tweet_parser.emojis
+    if tweet_emojis is not None:
+        for emoji in tweet_emojis:
+            cleaned_tweet = cleaned_tweet.replace(emoji.match, " emoji$$ ")
+    cleaned_tweet = cleaned_tweet.split("via")[0].split("|")[0].split(" - ")[0].split(" – ")[0]
+    cleaned_tweet_tokens = []
+    for word_token in cleaned_tweet.split(" "):
+        word_token = word_token.strip().rstrip()
+        if word_token.endswith("$$"):
+            cleaned_tweet_tokens.append(word_token)
+        elif len(word_token) > 0:
+            split_tokens = [w for w in wordninja.split(word_token) if w not in string.punctuation]
+            cleaned_tweet_tokens += [token for token in split_tokens if not is_number(token)]
+
+    cleaned_tweet = " ".join(cleaned_tweet_tokens)
+    return cleaned_tweet
 
 
 def longest_common_substring(m, n):
