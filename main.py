@@ -79,6 +79,14 @@ def analyse(config):
     analyse_fnn(config)
 
 
+def preprocess_tweet_paraphrase(config):
+    input_path = os.path.join(config.tweet_paraphrase_root, "train.data")
+    output_path = os.path.join(config.tweet_paraphrase_root, "data.tsv")
+    process_tweet_paraphrase(input_path=input_path, output_path=output_path)
+    tweet_paraphrase_train_path, tweet_paraphrase_test_path = process_text_classification(output_path, os.path.dirname(output_path))
+    cross_val(tweet_paraphrase_train_path, os.path.dirname(tweet_paraphrase_train_path), num_folds=10)
+
+
 def preprocess_stance_fnc(config):
     fnc_loader = FncLoader(config.fnc_root)
     fnc_dataset = fnc_loader.load()
@@ -89,11 +97,24 @@ def preprocess_stance_fnc(config):
 
 
 def preprocess_stance_fnn(config):
-    cleaned_output_path, uncleaned_output_path = process_annotated_datasets(config)
+    cleaned_output_path, uncleaned_output_path = process_annotated_datasets(config, label_type="stance")
     cleaned_train_path, cleaned_test_path = \
         process_text_classification(cleaned_output_path, os.path.dirname(cleaned_output_path))
     uncleaned_train_path, uncleaned_test_path = \
         process_text_classification(uncleaned_output_path, os.path.dirname(uncleaned_output_path))
+    cross_val(cleaned_train_path, os.path.dirname(cleaned_train_path), num_folds=10)
+    cross_val(uncleaned_train_path, os.path.dirname(uncleaned_train_path), num_folds=10)
+
+
+def preprocess_sentiment_fnn(config):
+    cleaned_output_path, uncleaned_output_path = process_annotated_datasets(config,
+                                                                            label_type="sentiment")
+    cleaned_train_path, cleaned_test_path = \
+        process_text_classification(cleaned_output_path, os.path.dirname(cleaned_output_path),
+                                    label_type="sentiment")
+    uncleaned_train_path, uncleaned_test_path = \
+        process_text_classification(uncleaned_output_path, os.path.dirname(uncleaned_output_path),
+                                    label_type="sentiment")
     cross_val(cleaned_train_path, os.path.dirname(cleaned_train_path), num_folds=10)
     cross_val(uncleaned_train_path, os.path.dirname(uncleaned_train_path), num_folds=10)
 
@@ -103,6 +124,10 @@ def preprocess(dataset_name, config):
         preprocess_stance_fnn(config)
     elif dataset_name == "stance_fnc":
         preprocess_stance_fnc(config)
+    elif dataset_name == "tweet_paraphrase":
+        preprocess_tweet_paraphrase(config)
+    elif dataset_name == "sentiment_fnn":
+        preprocess_sentiment_fnn(config)
     else:
         raise ValueError("Unrecognized stance dataset {}".format(dataset_name))
 

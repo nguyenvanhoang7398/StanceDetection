@@ -65,33 +65,63 @@ def process_csi_dataset(config, tweet_limit_per_event=None):
     utils.write_csv(real_twitter_content, fnn_header, os.path.join(config.csi_root, "twitter_real.csv"))
 
 
-def process_annotated_datasets(config):
+def process_annotated_datasets(config, label_type="stance"):
     annotated_root = os.path.join("datasets", "fnn")
     all_batch_dir = os.path.join(annotated_root, "batches")
     fnn_cleaned_dfs, fnn_uncleaned_dfs = [], []
     for batch in os.listdir(all_batch_dir):
         batch_dir = os.path.join(all_batch_dir, batch)
-        fnn_fake_cleaned = process_annotated_dataset(os.path.join(batch_dir, "fnn_fake_uncleaned.xlsx"))
-        fnn_real_cleaned = process_annotated_dataset(os.path.join(batch_dir, "fnn_real_uncleaned.xlsx"))
-        fnn_fake_uncleaned = process_annotated_dataset(os.path.join(batch_dir, "fnn_fake_uncleaned.xlsx"),
-                                                       cleaning=False)
-        fnn_real_uncleaned = process_annotated_dataset(os.path.join(batch_dir, "fnn_real_uncleaned.xlsx"),
-                                                       cleaning=False)
+        if label_type == "stance":
+            fnn_fake_cleaned = process_stance_annotated_dataset(os.path.join(batch_dir, "fnn_fake_uncleaned.xlsx"))
+            fnn_real_cleaned = process_stance_annotated_dataset(os.path.join(batch_dir, "fnn_real_uncleaned.xlsx"))
+            fnn_fake_uncleaned = process_stance_annotated_dataset(os.path.join(batch_dir, "fnn_fake_uncleaned.xlsx"),
+                                                                  cleaning=False)
+            fnn_real_uncleaned = process_stance_annotated_dataset(os.path.join(batch_dir, "fnn_real_uncleaned.xlsx"),
+                                                                  cleaning=False)
+        elif label_type == "sentiment":
+            fnn_fake_cleaned = process_sentiment_annotated_dataset(os.path.join(batch_dir, "fnn_fake_uncleaned.xlsx"))
+            fnn_real_cleaned = process_sentiment_annotated_dataset(os.path.join(batch_dir, "fnn_real_uncleaned.xlsx"))
+            fnn_fake_uncleaned = process_sentiment_annotated_dataset(os.path.join(batch_dir, "fnn_fake_uncleaned.xlsx"),
+                                                                     cleaning=False)
+            fnn_real_uncleaned = process_sentiment_annotated_dataset(os.path.join(batch_dir, "fnn_real_uncleaned.xlsx"),
+                                                                     cleaning=False)
+        else:
+            raise ValueError("Unrecognized label type {}".format(label_type))
         fnn_cleaned_dfs += [fnn_fake_cleaned, fnn_real_cleaned]
         fnn_uncleaned_dfs += [fnn_fake_uncleaned, fnn_real_uncleaned]
     fnn_cleaned = pd.concat(fnn_cleaned_dfs, sort=False)
     fnn_uncleaned = pd.concat(fnn_uncleaned_dfs, sort=False)
-    fnn_cleaned = post_process_annotated_dataset(fnn_cleaned)
-    fnn_uncleaned = post_process_annotated_dataset(fnn_uncleaned)
-    cleaned_output_path = os.path.join(annotated_root, "cleaned", "data.tsv")
-    uncleaned_output_path = os.path.join(annotated_root, "uncleaned", "data.tsv")
+    if label_type == "stance":
+        fnn_cleaned = post_process_stance_annotated_dataset(fnn_cleaned)
+        fnn_uncleaned = post_process_stance_annotated_dataset(fnn_uncleaned)
+    elif label_type == "sentiment":
+        fnn_cleaned = post_process_sentiment_annotated_dataset(fnn_cleaned)
+        fnn_uncleaned = post_process_sentiment_annotated_dataset(fnn_uncleaned)
+    else:
+        raise ValueError("Unrecognized label type {}".format(label_type))
+    cleaned_output_path = os.path.join(annotated_root, label_type, "cleaned", "data.tsv")
+    uncleaned_output_path = os.path.join(annotated_root, label_type, "uncleaned", "data.tsv")
     fnn_cleaned.to_csv(utils.io.ensure_path(cleaned_output_path), index=False, sep='\t')
     fnn_uncleaned.to_csv(utils.io.ensure_path(uncleaned_output_path), index=False, sep='\t')
     return cleaned_output_path, uncleaned_output_path
 
 
-def process_annotated_dataset(annotated_path, cleaning=True):
-    print("Process annotated dataset at {}".format(annotated_path))
+def process_sentiment_annotated_dataset(annotated_path, cleaning=True):
+    print("Process sentiment annotated dataset at {}".format(annotated_path))
+    annotated_df = pd.read_excel(pd.ExcelFile(annotated_path))
+    filtered_clean_df = annotated_df[annotated_df["clean"] == 1]
+    filtered_comment_df = filtered_clean_df[filtered_clean_df["stance"] == "comment"]
+    filtered_comment_df["source"] = filtered_comment_df["source"] \
+        .map(lambda x: utils.simple_clean(x))
+    if cleaning:
+        filtered_comment_df["source"] = filtered_comment_df["source"] \
+            .map(lambda x: utils.clean_tweet_text(x))
+    filtered_comment_df = filtered_comment_df[["source", "sentiment"]]
+    return filtered_comment_df
+
+
+def process_stance_annotated_dataset(annotated_path, cleaning=True):
+    print("Process stance annotated dataset at {}".format(annotated_path))
     annotated_df = pd.read_excel(pd.ExcelFile(annotated_path))
     filtered_report_df = annotated_df.set_index("stance")
     try:
@@ -111,19 +141,30 @@ def process_annotated_dataset(annotated_path, cleaning=True):
     return filtered_clean_df
 
 
-def post_process_annotated_dataset(df):
+def post_process_stance_annotated_dataset(df):
     final_df = df.drop_duplicates(subset=["source", "target"])
     final_df['idx'] = range(1, len(final_df) + 1)
     final_df = final_df[["idx", "source", "target", "stance"]]
     return final_df
 
 
-def process_text_classification(stance_path, stance_dataset_dir):
+def post_process_sentiment_annotated_dataset(df):
+    final_df = df.drop_duplicates(subset=["source"])
+    final_df['idx'] = range(1, len(final_df) + 1)
+    final_df = final_df[["idx", "source", "sentiment"]]
+    return final_df
+
+
+def process_text_classification(stance_path, stance_dataset_dir, label_type="stance"):
     stance_dataset = utils.read_csv(stance_path, delimiter="\t")
     content_out = []
     for row in stance_dataset:
-        if len(row[1].strip().rstrip()) > 0 and len(row[2].strip().rstrip()) > 0:
-            content_out.append([row[0], row[1], row[2], row[3].rstrip()])
+        if label_type == "stance":
+            if len(row[1].strip().rstrip()) > 0 and len(row[2].strip().rstrip()) > 0:
+                content_out.append([row[0], row[1], row[2], row[3].rstrip()])
+        elif label_type == "sentiment":
+            if len(row[1].strip().rstrip()) > 0:
+                content_out.append([row[0], row[1], row[2].rstrip()])
     train, test = train_test_split(content_out, test_size=0.05, random_state=9)
     train_path = os.path.join(stance_dataset_dir, "data_all.train")
     test_path = os.path.join(stance_dataset_dir, "data.test")

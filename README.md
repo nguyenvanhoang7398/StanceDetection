@@ -16,5 +16,5 @@ python main.py  [--config-path <path-to-config-file>]
 
 parameters:
     --config-path           default: "config/config.json"
-    --dataset-name          default: None                   stance_fnn|stance_fnc
+    --dataset-name          default: None                   stance_fnn|stance_fnc|tweet_paraphrase|sentiment_fnn
 ```

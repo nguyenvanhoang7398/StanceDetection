@@ -11,5 +11,6 @@
 	"fnn_fnc_pred_root": "datasets/fakenewsnet_dataset/stance_fnc",
 	"fnn_re17_pred_root": "datasets/fakenewsnet_dataset/stance_re17",
 	"csi_root": "datasets/csi",
-	"re19_root": "datasets/rumor_eval_19"
+	"re19_root": "datasets/rumor_eval_19",
+	"tweet_paraphrase_root": "datasets/tweet_paraphrase"
 }
