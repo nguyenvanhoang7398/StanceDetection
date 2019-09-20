@@ -1,4 +1,5 @@
 from utils.io import read_csv, write_csv
+from utils.nlp import clean_tweet_text
 
 
 def raw_label_map(raw_label):
@@ -13,6 +14,7 @@ def raw_label_map(raw_label):
 
 def process_tweet_paraphrase(input_path, output_path):
     raw_tweet_dataset = read_csv(input_path, load_header=True, delimiter="\t")
-    tweet_dataset = [[idx, row[2], row[3], raw_label_map(row[4])] for idx, row in enumerate(raw_tweet_dataset)]
+    tweet_dataset = [[idx, clean_tweet_text(row[2]), clean_tweet_text(row[3]), raw_label_map(row[4])]
+                     for idx, row in enumerate(raw_tweet_dataset)]
     header = ["index", "sent1", "sent2", "label"]
     write_csv(tweet_dataset, header, output_path, delimiter="\t")

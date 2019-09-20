@@ -10,7 +10,7 @@ def add_arguments(parser):
     """Build ArgumentParser."""
     parser.register("type", "bool", lambda v: v.lower() == "true")
     parser.add_argument("--config-path", type=str, default="config/config.json", help="Path to config file")
-    parser.add_argument("--dataset-name", type=str, default="stance_fnn", help="Dataset name to preprocess")
+    parser.add_argument("--dataset-name", type=str, default="", help="Dataset name to preprocess")
 
 
 def load_fnc_full(config):
@@ -81,10 +81,13 @@ def analyse(config):
 
 def preprocess_tweet_paraphrase(config):
     input_path = os.path.join(config.tweet_paraphrase_root, "train.data")
-    output_path = os.path.join(config.tweet_paraphrase_root, "data.tsv")
+    output_path = os.path.join(config.tweet_paraphrase_root, "paraphrase.tsv")
     process_tweet_paraphrase(input_path=input_path, output_path=output_path)
-    tweet_paraphrase_train_path, tweet_paraphrase_test_path = process_text_classification(output_path, os.path.dirname(output_path))
-    cross_val(tweet_paraphrase_train_path, os.path.dirname(tweet_paraphrase_train_path), num_folds=10)
+    tweet_paraphrase_train_path, tweet_paraphrase_test_path \
+        = process_text_classification(output_path, os.path.dirname(output_path),
+                                      dataset_name="paraphrase")
+    cross_val(tweet_paraphrase_train_path, os.path.dirname(tweet_paraphrase_train_path), num_folds=10,
+              dataset_name="paraphrase")
 
 
 def preprocess_stance_fnc(config):
@@ -92,18 +95,23 @@ def preprocess_stance_fnc(config):
     fnc_dataset = fnc_loader.load()
     fnc_path = os.path.join(config.fnc_root, "data.tsv")
     fnc_dataset.export_full(fnc_path, delimiter="\t")
-    fnc_train_path, fnc_test_path = process_text_classification(fnc_path, os.path.dirname(fnc_path))
-    cross_val(fnc_train_path, os.path.dirname(fnc_train_path), num_folds=10)
+    fnc_train_path, fnc_test_path = \
+        process_text_classification(fnc_path, os.path.dirname(fnc_path), dataset_name="fnc")
+    cross_val(fnc_train_path, os.path.dirname(fnc_train_path), num_folds=10, dataset_name="fnc")
 
 
 def preprocess_stance_fnn(config):
     cleaned_output_path, uncleaned_output_path = process_annotated_datasets(config, label_type="stance")
     cleaned_train_path, cleaned_test_path = \
-        process_text_classification(cleaned_output_path, os.path.dirname(cleaned_output_path))
+        process_text_classification(cleaned_output_path, os.path.dirname(cleaned_output_path),
+                                    dataset_name="stance")
     uncleaned_train_path, uncleaned_test_path = \
-        process_text_classification(uncleaned_output_path, os.path.dirname(uncleaned_output_path))
-    cross_val(cleaned_train_path, os.path.dirname(cleaned_train_path), num_folds=10)
-    cross_val(uncleaned_train_path, os.path.dirname(uncleaned_train_path), num_folds=10)
+        process_text_classification(uncleaned_output_path, os.path.dirname(uncleaned_output_path),
+                                    dataset_name="stance")
+    cross_val(cleaned_train_path, os.path.dirname(cleaned_train_path), num_folds=10,
+              dataset_name="stance")
+    cross_val(uncleaned_train_path, os.path.dirname(uncleaned_train_path), num_folds=10,
+              dataset_name="stance")
 
 
 def preprocess_sentiment_fnn(config):
@@ -111,12 +119,16 @@ def preprocess_sentiment_fnn(config):
                                                                             label_type="sentiment")
     cleaned_train_path, cleaned_test_path = \
         process_text_classification(cleaned_output_path, os.path.dirname(cleaned_output_path),
-                                    label_type="sentiment")
+                                    label_type="sentiment", dataset_name="sentiment")
     uncleaned_train_path, uncleaned_test_path = \
         process_text_classification(uncleaned_output_path, os.path.dirname(uncleaned_output_path),
-                                    label_type="sentiment")
-    cross_val(cleaned_train_path, os.path.dirname(cleaned_train_path), num_folds=10)
-    cross_val(uncleaned_train_path, os.path.dirname(uncleaned_train_path), num_folds=10)
+                                    label_type="sentiment", dataset_name="sentiment")
+    cross_val(cleaned_train_path, os.path.dirname(cleaned_train_path), num_folds=10, dataset_name="sentiment")
+    cross_val(uncleaned_train_path, os.path.dirname(uncleaned_train_path), num_folds=10, dataset_name="sentiment")
+
+
+def preprocess_mrpc(config):
+    build_mrpc(config.mrpc_root)
 
 
 def preprocess(dataset_name, config):
@@ -128,8 +140,10 @@ def preprocess(dataset_name, config):
         preprocess_tweet_paraphrase(config)
     elif dataset_name == "sentiment_fnn":
         preprocess_sentiment_fnn(config)
+    elif dataset_name == "mrpc":
+        preprocess_mrpc(config)
     else:
-        raise ValueError("Unrecognized stance dataset {}".format(dataset_name))
+        raise ValueError("Unrecognized dataset {}".format(dataset_name))
 
     # load_fnc_full(config)
     # load_fnc_split(config)

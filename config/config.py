@@ -14,3 +14,4 @@ class Config(object):
 		self.csi_root = config_dict["csi_root"]
 		self.re19_root = config_dict["re19_root"]
 		self.tweet_paraphrase_root = config_dict["tweet_paraphrase_root"]
+		self.mrpc_root = config_dict["mrpc_root"]

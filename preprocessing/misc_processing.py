@@ -47,8 +47,6 @@ def process_csi_dataset(config, tweet_limit_per_event=None):
     with open(raw_twitter_path, "r") as f:
         for line in f.readlines():
             tokens = line.split("\t")
-            # print(tokens)
-            # break
             event_id, label, tweets = tokens[0], tokens[1], tokens[2].split(" ")
             if tweet_limit_per_event is not None:
                 tweets = tweets[:tweet_limit_per_event]
@@ -99,8 +97,8 @@ def process_annotated_datasets(config, label_type="stance"):
         fnn_uncleaned = post_process_sentiment_annotated_dataset(fnn_uncleaned)
     else:
         raise ValueError("Unrecognized label type {}".format(label_type))
-    cleaned_output_path = os.path.join(annotated_root, label_type, "cleaned", "data.tsv")
-    uncleaned_output_path = os.path.join(annotated_root, label_type, "uncleaned", "data.tsv")
+    cleaned_output_path = os.path.join(annotated_root, label_type, "cleaned", "{}.tsv".format(label_type))
+    uncleaned_output_path = os.path.join(annotated_root, label_type, "uncleaned", "{}.tsv".format(label_type))
     fnn_cleaned.to_csv(utils.io.ensure_path(cleaned_output_path), index=False, sep='\t')
     fnn_uncleaned.to_csv(utils.io.ensure_path(uncleaned_output_path), index=False, sep='\t')
     return cleaned_output_path, uncleaned_output_path
@@ -155,7 +153,7 @@ def post_process_sentiment_annotated_dataset(df):
     return final_df
 
 
-def process_text_classification(stance_path, stance_dataset_dir, label_type="stance"):
+def process_text_classification(stance_path, stance_dataset_dir, label_type="stance", dataset_name="data"):
     stance_dataset = utils.read_csv(stance_path, delimiter="\t")
     content_out = []
     for row in stance_dataset:
@@ -166,14 +164,14 @@ def process_text_classification(stance_path, stance_dataset_dir, label_type="sta
             if len(row[1].strip().rstrip()) > 0:
                 content_out.append([row[0], row[1], row[2].rstrip()])
     train, test = train_test_split(content_out, test_size=0.05, random_state=9)
-    train_path = os.path.join(stance_dataset_dir, "data_all.train")
-    test_path = os.path.join(stance_dataset_dir, "data.test")
+    train_path = os.path.join(stance_dataset_dir, "{}_all.train".format(dataset_name))
+    test_path = os.path.join(stance_dataset_dir, "{}.test".format(dataset_name))
     utils.write_csv(train, None, train_path, delimiter="\t")
     utils.write_csv(test, None, test_path, delimiter="\t")
     return train_path, test_path
 
 
-def cross_val(input_path, output_dir, num_folds):
+def cross_val(input_path, output_dir, num_folds, dataset_name="data"):
     kf = KFold(n_splits=num_folds)
     data = np.array(utils.load_text_as_list(input_path))
     fold = 1
@@ -181,6 +179,6 @@ def cross_val(input_path, output_dir, num_folds):
         fold_dir = os.path.join(output_dir, "fold_{}".format(fold))
         print("Creating fold {} at {}".format(fold, output_dir))
         data_train, data_test = data[train_index], data[test_index]
-        utils.save_list_as_text(data_train, utils.ensure_path(os.path.join(fold_dir, "data.train")))
-        utils.save_list_as_text(data_test, utils.ensure_path(os.path.join(fold_dir, "data.val")))
+        utils.save_list_as_text(data_train, utils.ensure_path(os.path.join(fold_dir, "{}.train".format(dataset_name))))
+        utils.save_list_as_text(data_test, utils.ensure_path(os.path.join(fold_dir, "{}.val".format(dataset_name))))
         fold += 1
