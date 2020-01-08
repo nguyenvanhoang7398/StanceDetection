@@ -1,5 +1,6 @@
 import argparse
 from config import Config
+import ntpath
 from preprocessing import *
 import utils
 
@@ -10,7 +11,12 @@ def add_arguments(parser):
     """Build ArgumentParser."""
     parser.register("type", "bool", lambda v: v.lower() == "true")
     parser.add_argument("--config-path", type=str, default="config/config.json", help="Path to config file")
-    parser.add_argument("--dataset-name", type=str, default="", help="Dataset name to preprocess")
+    parser.add_argument("-d", "--dataset-name", type=str, default="", help="Dataset name to preprocess")
+    parser.add_argument("--to-glue", type=bool, default=False, help="Whether to convert to GLUE format")
+    parser.add_argument("--to-glue-path", type=str, default="", help="path to file to convert to GLUE")
+    parser.add_argument("--rescaling", type=bool, default=False, help="Whether to rescale the data "
+                                                                      "by some distribution")
+    parser.add_argument("--rescaling-path", type=str, default="", help="path to file to be rescaled")
 
 
 def load_fnc_full(config):
@@ -218,6 +224,17 @@ if __name__ == "__main__":
     CONFIGS, unparsed = sd_parser.parse_known_args()
     config_json = utils.read_json(CONFIGS.config_path)
     sd_config = Config(config_json)
-    preprocess(CONFIGS.dataset_name, sd_config)
+    if CONFIGS.to_glue:
+        if CONFIGS.dataset_name == "sentiment_fnn":
+            convert_to_sst_format(CONFIGS.to_glue_path)
+        else:
+            raise ValueError("Unsupported to GLUE for dataset {}".format(CONFIGS.dataset_name))
+    elif CONFIGS.rescaling:
+        if CONFIGS.dataset_name == "stance_fnc":
+            rescale_fnc_by_distribution(CONFIGS.rescaling_path)
+        else:
+            raise ValueError("Unsupported rescaling for dataset {}".format(CONFIGS.dataset_name))
+    else:
+        preprocess(CONFIGS.dataset_name, sd_config)
     # experiment_summary(sd_config)
     # analyse(sd_config)

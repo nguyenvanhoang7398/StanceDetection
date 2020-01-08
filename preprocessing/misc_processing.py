@@ -1,10 +1,64 @@
 import numpy as np
-from sklearn.model_selection import KFold
+import ntpath
+import operator
 import os
 import pandas as pd
 from preprocessing.dataset import StanceDataset
 from sklearn.model_selection import train_test_split
+from sklearn.model_selection import KFold
 import utils
+
+
+def rescale_fnc_by_distribution(input_path):
+    label_distribution = {
+        "support": 22.46,
+        "deny": 14.13,
+        "comment": 18.34,
+        "unrelated": 45.07
+    }
+    file_name = ntpath.basename(input_path)
+    output_dir = os.path.dirname(input_path)
+    fnc_data = utils.read_csv(input_path, load_header=False, delimiter="\t")
+    fnc_label_data_map = {label: [] for label in label_distribution.keys()}
+    [fnc_label_data_map[example[3]].append(example) for example in fnc_data]
+    rescaled_label_size = {}
+    for fixed_label in label_distribution.keys():
+        fixed_label_size = len(fnc_label_data_map[fixed_label])
+        rescaled_label_size = {fixed_label: fixed_label_size}
+        for label, freq in label_distribution.items():
+            if label != fixed_label:
+                rescaled_size = label_distribution[label] / label_distribution[fixed_label] * fixed_label_size
+                if rescaled_size <= len(fnc_label_data_map[label]):
+                    rescaled_label_size[label] = rescaled_size
+                else:
+                    break
+        if len(rescaled_label_size) == len(label_distribution):
+            break
+
+    print("Rescaled label size {}".format(rescaled_label_size))
+
+    rescaled_data = []
+    for label, data in fnc_label_data_map.items():
+        rescaled_data += data[:(int(rescaled_label_size[label])+1)]
+
+    np.random.shuffle(rescaled_data)
+    utils.write_csv(rescaled_data, None, os.path.join(output_dir, "{}.scaled".format(file_name)), delimiter="\t")
+
+
+def convert_to_sst_format(input_path):
+    file_name = ntpath.basename(input_path)
+    output_path = os.path.join(os.path.dirname(input_path), "{}.sst".format(file_name))
+    sst_data = []
+    sst_header = ["sentence", "label"]
+    sentiment_map = {
+        "negative": 0,
+        "neutral": 1
+    }
+    sentiment_data = utils.read_csv(input_path, load_header=True, delimiter="\t")
+    for example in sentiment_data:
+        print(example)
+        sst_data.append([example[1], sentiment_map[example[2]]])
+    utils.write_csv(sst_data, sst_header, output_path, delimiter="\t")
 
 
 def process_fnn(fnn_csv_path, output_dir, num_folds=10):
@@ -109,6 +163,8 @@ def process_sentiment_annotated_dataset(annotated_path, cleaning=True):
     annotated_df = pd.read_excel(pd.ExcelFile(annotated_path))
     filtered_clean_df = annotated_df[annotated_df["clean"] == 1]
     filtered_comment_df = filtered_clean_df[filtered_clean_df["stance"] == "comment"]
+    filtered_comment_df["sentiment"].replace('', np.nan, inplace=True)
+    filtered_comment_df.dropna(subset=['sentiment'], inplace=True)
     filtered_comment_df["source"] = filtered_comment_df["source"] \
         .map(lambda x: utils.simple_clean(x))
     if cleaning:

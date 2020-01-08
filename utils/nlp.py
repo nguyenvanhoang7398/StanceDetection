@@ -3,6 +3,10 @@ import preprocessor as p
 import re
 import string
 import wordninja
+import utils.io as utils_io
+
+
+COMMON_ENGLISH_WORDS = utils_io.load_text_as_list("datasets/common_20k.txt")
 
 
 def strip_urls(text):
@@ -55,7 +59,7 @@ def clean_tweet_text(tweet_text):
     cleaned_tweet_tokens = []
     for word_token in cleaned_tweet.split(" "):
         word_token = word_token.strip().rstrip()
-        if word_token.endswith("$$"):
+        if word_token.endswith("$$") or word_token in COMMON_ENGLISH_WORDS:
             cleaned_tweet_tokens.append(word_token)
         elif len(word_token) > 0:
             split_tokens = [w for w in wordninja.split(word_token) if w not in string.punctuation]
